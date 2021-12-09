@@ -6,12 +6,16 @@
 #include <string>
 #include <queue>
 #include <algorithm>
+#include <iomanip>
 
 using namespace std;
 const int SIZE = 32;
 double distance(int x, int y, int targetX, int targetY);
 void readMap(int[SIZE][SIZE]);
 void writeMap(int[SIZE][SIZE]);
+void printMap(int map[SIZE][SIZE]);
+void invertMap(int map[SIZE][SIZE]);
+template <typename Queue> void printQueue(Queue queue);
 
 struct Node
 {
@@ -50,26 +54,39 @@ vector<Node*> getNeighbors(const Node * parent, int map[SIZE][SIZE], int goalX, 
 int main(int argc, char const *argv[])
 {
     int map[SIZE][SIZE];
+    int resultMap[SIZE][SIZE];
     MapRange MapPos(0, 31, -8, 8);
     const int startX = ceil(MapPos(-6)); const int startY = ceil(MapPos(-6)); const int endX = ceil(MapPos(6.5)); const int endY = ceil(MapPos(6.5));
     readMap(map);
-    priority_queue<Node*> open;
+    readMap(resultMap);
+    invertMap(map);
+    invertMap(resultMap);
+    printMap(map);
+    auto compare = [](const Node* lhs, const Node* rhs){return lhs < rhs;};
+    priority_queue<Node, vector<Node*>, decltype(compare)> open(compare);
     vector<const Node*> closed;
     open.push(new Node(nullptr, startX, startY, endX, endY, 1));
     // Node *startPos = new Node(nullptr, startX, startY, endX, endY, 1);
     while (open.size() > 0)
     {
+        printQueue(open);
         const Node* currentNode = open.top();
         cout << "Visiting Node: " << currentNode->to_string() << endl;
         if(currentNode->x == endX && currentNode->y == endY){
             cout << "Goal reached!" << endl;
-            break; //TODO: trace path
+            return 0; //TODO: trace path
         }
         open.pop();
+        resultMap[currentNode->x][currentNode->y] = currentNode->fCost;
+        printMap(resultMap);
         closed.push_back(currentNode);
         for(Node* n : getNeighbors(currentNode, map, endX, endY)){
-            if (find(closed.begin(), closed.end(), n) != closed.end())
-                continue;
+            auto closedIter = find(closed.begin(), closed.end(), n);
+            if (closedIter != closed.end())
+                if ((**closedIter) < (*n))
+                    continue;
+                else
+                    closed.erase(closedIter);
             open.push(n);
         }
     }
@@ -150,4 +167,39 @@ vector<Node*> getNeighbors(const Node * parent, int map[SIZE][SIZE], int goalX, 
         }
     }
     return neighbors;
+}
+/**
+ * printMap
+ *
+ * Print map[][] out on the screen. The first element to be printed
+ * is [SIZE][0] so that the result looks the same as the contents of
+ * map.txt
+ *
+ **/
+void printMap(int map[SIZE][SIZE])
+{
+  for(int i = SIZE -1; i >= 0; i--){
+    for(int j = 0; j < SIZE; j++)
+      {
+	    std::cout << std::setw(3) << map[i][j] << " ";
+      }
+    std::cout << std::endl;
+  }
+
+}
+void invertMap(int map[SIZE][SIZE]){
+    for (int x = 0; x < SIZE; x++){
+        for (int y = 0; y < SIZE; y++){
+            if (map[x][y] == 1)
+                map[x][y] = -1;
+            else if (map[x][y] == 0)
+                map[x][y] = 1;
+        }
+    }
+}
+template <typename Queue> void printQueue(Queue queue){
+    while (!queue.empty()){
+        cout << queue.top()->to_string() << endl;
+        queue.pop();
+    }
 }
